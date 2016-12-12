@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.Gameplay;
+using Assets.Scripts.Utility;
+using UnityEngine;
 using UnityStandardAssets.CrossPlatformInput;
 
 namespace Assets.Scripts
@@ -6,6 +8,11 @@ namespace Assets.Scripts
     public class Interactor : MonoBehaviour
     {
         public float InteractDistance = 1f;
+
+        public GameObject GrabbedObject
+        {
+            get { return _grabbedObject; }
+        }
 
         private Transform _grabbingTransform;
         private Transform _cameraTransform;
@@ -54,27 +61,26 @@ namespace Assets.Scripts
 
         void Interact()
         {
-            if (_grabbedObject == null)
+            if (_objectToInteract != null)
             {
-                if (_objectToInteract != null)
+                if (_objectToInteract.GetComponent<Artifact>() != null && _grabbedObject == null)
+                {
                     TakeObject(_objectToInteract);
+                }
+                else
+                {
+                    _objectToInteract.SendMessage("OnInteract", this, SendMessageOptions.DontRequireReceiver);
+                }
             }
-            else
+            else if (_grabbedObject != null)
             {
-                if(_grabbedObject != null)
-                    DropObject(_grabbedObject);
+                DropObject();
             }
         }
 
-        void TakeObject(GameObject obj)
+        public void TakeObject(GameObject obj)
         {
-            var body = obj.GetComponent<Rigidbody>();
-            if(body != null)
-                body.isKinematic = true;
-            
-            var col = obj.GetComponent<Collider>();
-            if (col != null)
-                col.enabled = false;
+            Utilities.DisableRigidBody(obj);
 
             obj.transform.SetParent(_grabbingTransform, true);
             obj.transform.localPosition = Vector3.zero;
@@ -83,20 +89,19 @@ namespace Assets.Scripts
             obj.SendMessage("OnPickedUp", this, SendMessageOptions.DontRequireReceiver);
         }
 
-        void DropObject(GameObject obj)
+        public void DropObject()
         {
-            var body = obj.GetComponent<Rigidbody>();
-            if (body != null)
-                body.isKinematic = false;
+            if (_grabbedObject == null)
+            {
+                Debug.LogWarning("Trying to drop a null object");
+                return;
+            }
 
-            var col = obj.GetComponent<Collider>();
-            if (col != null)
-                col.enabled = true;
+            Utilities.EnableRigidBody(_grabbedObject);
 
-            obj.transform.SetParent(null, true);
+            _grabbedObject.transform.SetParent(null, true);
+            _grabbedObject.SendMessage("OnDropped", this, SendMessageOptions.DontRequireReceiver);
             _grabbedObject = null;
-
-            obj.SendMessage("OnDropped", this, SendMessageOptions.DontRequireReceiver);
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.UI;
+using Assets.Scripts.Utility;
+using UnityEngine;
 using UnityStandardAssets.CrossPlatformInput;
 
 namespace Assets.Scripts
@@ -13,13 +15,13 @@ namespace Assets.Scripts
         public float RunMultiplier = 2.0f;   // Speed when sprinting
         public KeyCode RunKey = KeyCode.LeftShift;
         public float JumpForce = 30f;
-        public bool AirControl = true;
+        public float AirControlModifier = 0.7f;
+        public float GroundDrag = 5f;
 
         public AnimationCurve SlopeCurveModifier = new AnimationCurve(new Keyframe(-90.0f, 1.0f), new Keyframe(0.0f, 1.0f), new Keyframe(90.0f, 0.0f));
         public float ShellOffset; //reduce the radius by that ratio to avoid getting stuck in wall (a value of 0.1f is nice)
         public float GroundCheckDistance = 0.01f; // distance for checking if the controller is grounded ( 0.01f seems to work best for this )
         public float StickToGroundHelperDistance = 0.5f; // stops the character
-        public float SlowDownRate = 20f; // rate at which the controller comes to a stop when there is no input
 
         [HideInInspector]
         public float CurrentTargetSpeed = 8f;
@@ -65,6 +67,11 @@ namespace Assets.Scripts
             {
                 _jump = true;
             }
+
+            if (CrossPlatformInputManager.GetButtonDown("Fire2"))
+            {
+                GetComponent<LastStaticPositionTracker>().ResetToStaticPositionDelayed(0.5f);
+            }
         }
 
         void FixedUpdate()
@@ -79,11 +86,15 @@ namespace Assets.Scripts
             UpdateDesiredTargetSpeed(input);
 
 
-            if ((Mathf.Abs(input.x) > float.Epsilon || Mathf.Abs(input.y) > float.Epsilon) && (AirControl || _isGrounded))
+            if ((Mathf.Abs(input.x) > float.Epsilon || Mathf.Abs(input.y) > float.Epsilon))
             {
                 // always move along the camera forward as it is the direction that it being aimed at
                 var desiredMove = transform.forward * input.y + transform.right * input.x;
+                
                 desiredMove = Vector3.ProjectOnPlane(desiredMove, _groundContactNormal).normalized;
+
+                if (!_isGrounded)
+                    desiredMove *= AirControlModifier;
 
                 desiredMove.x = desiredMove.x * CurrentTargetSpeed;
                 desiredMove.z = desiredMove.z * CurrentTargetSpeed;
@@ -97,12 +108,13 @@ namespace Assets.Scripts
 
             if (_isGrounded)
             {
-                _rigidBody.drag = 5f;
+                _rigidBody.drag = GroundDrag;
 
                 if (_jump)
                 {
                     _rigidBody.drag = 0f;
-                    _rigidBody.velocity = new Vector3(_rigidBody.velocity.x, 0f, _rigidBody.velocity.z);
+                    _rigidBody.velocity = Vector3.ProjectOnPlane(_rigidBody.velocity, transform.up);
+                        //new Vector3(_rigidBody.velocity.x, 0f, _rigidBody.velocity.z);
                     _rigidBody.AddForce(transform.up * JumpForce, ForceMode.Impulse);
                     _jumping = true;
                 }
@@ -195,6 +207,11 @@ namespace Assets.Scripts
         {
             var angle = Vector3.Angle(_groundContactNormal, transform.up);
             return SlopeCurveModifier.Evaluate(angle);
+        }
+
+        void OnPositionResetStarted()
+        {
+            FindObjectOfType<Fader>().FadeInOut(0.5f);
         }
     }
 }

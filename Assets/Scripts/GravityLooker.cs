@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Assets.Scripts.Utility;
 using UnityEngine;
 using UnityStandardAssets.CrossPlatformInput;
 
@@ -38,10 +39,10 @@ namespace Assets.Scripts
             var verticalRotation = CrossPlatformInputManager.GetAxis("Mouse Y") * YSensitivity;
 
             _cameraTransform.localRotation =
-                ClampRotationAroundXAxis(
+                Utilities.ClampRotationAroundXAxis(
                 _cameraTransform.localRotation * 
                 Quaternion.Euler(-alignment.x, 0, 0) * 
-                Quaternion.Euler(-verticalRotation, 0f, 0f));
+                Quaternion.Euler(-verticalRotation, 0f, 0f), MinimumVerticalAngle, MaximumVerticalAngle);
 
 
             transform.localRotation = Quaternion.Lerp(transform.localRotation, transform.localRotation * alignment,
@@ -94,21 +95,6 @@ namespace Assets.Scripts
 
             return dir;
         }
-
-        Quaternion ClampRotationAroundXAxis(Quaternion q)
-        {
-            q.x /= q.w;
-            q.y /= q.w;
-            q.z /= q.w;
-            q.w = 1.0f;
-
-            float angleX = 2.0f * Mathf.Rad2Deg * Mathf.Atan(q.x);
-
-            angleX = Mathf.Clamp(angleX, MinimumVerticalAngle, MaximumVerticalAngle);
-
-            q.x = Mathf.Tan(0.5f * Mathf.Deg2Rad * angleX);
-
-            return q;
-        }
+       
     }
 }
