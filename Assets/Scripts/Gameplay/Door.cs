@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.Utility;
+using UnityEngine;
 
 namespace Assets.Scripts.Gameplay
 {
+    [RequireComponent(typeof(AudioSource))]
     public class Door : MonoBehaviour
     {
         public enum DoorState
@@ -10,6 +12,11 @@ namespace Assets.Scripts.Gameplay
             Closing,
             Opened,
             Opening
+        }
+
+        public DoorState State
+        {
+            get { return _state; }
         }
 
         public bool Locked = false;
@@ -22,16 +29,23 @@ namespace Assets.Scripts.Gameplay
 
         public AnimationCurve OpenRotationCurve = AnimationCurve.EaseInOut(0, 0, 1f, 1f);
         public AnimationCurve CloseRotationCurve = AnimationCurve.EaseInOut(0, 0f, 1f, 1f);
+        
+        public AudioClipWithVolume DoorMovement;
+        public AudioClipWithVolume DoorHandle;
+        public AudioClipWithVolume DoorSlam;
+        public AudioClipWithVolume DoorIsLocked;
 
         private DoorState _state;
         private float _transition = 0;
         private float _currentAngle;
         private float _targetAngle;
+        private AudioSource _audioSource;
 
         void Start()
         {
             _state = DoorState.Closed;
             _currentAngle = 0f;
+            _audioSource = GetComponent<AudioSource>();
         }
 
         void Update()
@@ -48,6 +62,9 @@ namespace Assets.Scripts.Gameplay
                     _state = DoorState.Opened;
                     _transition = 0f;
                     _currentAngle = _targetAngle;
+
+                    if (DoorHandle.Clip != null)
+                        _audioSource.PlayOneShot(DoorHandle.Clip, DoorHandle.VolumeModifier);
                 }
             }
 
@@ -60,6 +77,9 @@ namespace Assets.Scripts.Gameplay
                     _state = DoorState.Closed;
                     _transition = 0f;
                     _currentAngle = _targetAngle;
+
+                    if(DoorSlam.Clip != null)
+                        _audioSource.PlayOneShot(DoorSlam.Clip, DoorSlam.VolumeModifier);
                 }
             }
         }
@@ -68,24 +88,46 @@ namespace Assets.Scripts.Gameplay
         {
             if (_state == DoorState.Opened)
             {
-                _state = DoorState.Closing;
-                _transition = 0;
-                _targetAngle = 0;
+                Close();
             }
             else if(_state == DoorState.Closed && !Locked)
             {
-                _state = DoorState.Opening;
-                _transition = 0;
-
-                var localDelta = transform.InverseTransformPoint(interactor.transform.position) - transform.InverseTransformPoint(transform.position);
-                if (localDelta.x < 0)
+                if (Locked)
                 {
-                    _targetAngle = Angle1;
+                    if(DoorIsLocked.Clip != null)
+                        _audioSource.PlayOneShot(DoorIsLocked.Clip, DoorIsLocked.VolumeModifier);
                 }
                 else
                 {
-                    _targetAngle = Angle2;
+                    _state = DoorState.Opening;
+                    _transition = 0;
+
+                    if (DoorMovement.Clip != null)
+                        _audioSource.PlayOneShot(DoorMovement.Clip, DoorMovement.VolumeModifier);
+
+                    var localDelta = transform.InverseTransformPoint(interactor.transform.position) - transform.InverseTransformPoint(transform.position);
+                    if (localDelta.x < 0)
+                    {
+                        _targetAngle = Angle1;
+                    }
+                    else
+                    {
+                        _targetAngle = Angle2;
+                    }
                 }
+            }
+        }
+
+        public void Close()
+        {
+            if (_state == DoorState.Opened)
+            {
+                _state = DoorState.Closing;
+                _transition = 0;
+                _targetAngle = 0;
+
+                if (DoorMovement.Clip != null)
+                    _audioSource.PlayOneShot(DoorMovement.Clip, DoorMovement.VolumeModifier);
             }
         }
 

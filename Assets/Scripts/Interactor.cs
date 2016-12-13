@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Gameplay;
+using Assets.Scripts.UI;
 using Assets.Scripts.Utility;
 using UnityEngine;
 using UnityStandardAssets.CrossPlatformInput;
@@ -18,7 +19,7 @@ namespace Assets.Scripts
         private Transform _cameraTransform;
         private GameObject _objectToInteract;
         private GameObject _grabbedObject;
-
+        private Helper _helper;
 
         void Start ()
         {
@@ -33,6 +34,8 @@ namespace Assets.Scripts
                 if (_grabbingTransform == null)
                     Debug.LogWarning("Couldn't find Grabber");
             }
+
+            _helper = GameObject.FindObjectOfType<Helper>();
         }
         
         void Update ()
@@ -51,11 +54,19 @@ namespace Assets.Scripts
                     out hit, InteractDistance))
             {
                 if (hit.collider.CompareTag(Tags.Interactable))
+                {
                     _objectToInteract = hit.collider.gameObject;
+
+                    if(_helper != null)
+                        _helper.Show("Interact");
+                }
             }
             else
             {
                 _objectToInteract = null;
+
+                if(_helper != null)
+                    _helper.Hide();
             }
         }
 

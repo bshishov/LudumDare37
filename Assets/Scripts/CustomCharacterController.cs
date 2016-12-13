@@ -117,6 +117,7 @@ namespace Assets.Scripts
                         //new Vector3(_rigidBody.velocity.x, 0f, _rigidBody.velocity.z);
                     _rigidBody.AddForce(transform.up * JumpForce, ForceMode.Impulse);
                     _jumping = true;
+                    SendMessage("OnJump", SendMessageOptions.DontRequireReceiver);
                 }
 
                 if (!_jumping && Mathf.Abs(input.x) < float.Epsilon && Mathf.Abs(input.y) < float.Epsilon && _rigidBody.velocity.magnitude < 1f)
@@ -183,9 +184,11 @@ namespace Assets.Scripts
                 _isGrounded = false;
                 _groundContactNormal = transform.up;
             }
+
             if (!_previouslyGrounded && _isGrounded && _jumping)
             {
                 _jumping = false;
+                SendMessage("OnLand", SendMessageOptions.DontRequireReceiver);
             }
         }
 

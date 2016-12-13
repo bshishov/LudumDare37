@@ -7,6 +7,7 @@ namespace Assets.Scripts
 {
     public class ArtifactSlot : MonoBehaviour
     {
+        public bool Locked = false;
         public bool HasObject { get { return _artifactInSlot != null; } }
         public Artifact ArtifactInSlot { get { return _artifactInSlot; } }
 
@@ -45,7 +46,7 @@ namespace Assets.Scripts
             }
             else
             {
-                if (_artifactInSlot != null)
+                if (_artifactInSlot != null && !Locked)
                 {
                     _artifactInSlot.transform.SetParent(null, true);
                     _artifactInSlot.SendMessage("OnRemovedFromSlot", this, SendMessageOptions.DontRequireReceiver);

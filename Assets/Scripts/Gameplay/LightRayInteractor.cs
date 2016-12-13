@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Assets.Scripts.Utility;
 using UnityEngine;
 
 namespace Assets.Scripts.Gameplay
@@ -32,12 +33,15 @@ namespace Assets.Scripts.Gameplay
         public LightRayInteractor ConnectedWith;
         public Color EmitterColor = Color.cyan;
         public GameObject LightSparks;
+        public AudioClipWithVolume OnLight;
+        public AudioClipWithVolume LightLoopSound;
 
         private GameObject _lightSparks;
         private LineRenderer _line;
         private ParticleSystem _particleSystem;
         private Color _currentColor;
         private readonly List<LightRayInteractor> _inputs = new List<LightRayInteractor>();
+        private AudioSource _audioSource;
 
         void Start()
         {
@@ -57,6 +61,8 @@ namespace Assets.Scripts.Gameplay
             }
 
             StartCoroutine(LateStart());
+
+            _audioSource = GetComponent<AudioSource>();
         }
 
         IEnumerator LateStart()
@@ -71,8 +77,9 @@ namespace Assets.Scripts.Gameplay
         void Update ()
         {
             if (HasLight)
-            {               
-                if(Type == LightRayInteractorType.Director)
+            {
+                _line.SetPosition(0, transform.position);
+                if (Type == LightRayInteractorType.Director)
                 {
                     _line.enabled = true;
                     RaycastHit hit;
@@ -129,6 +136,21 @@ namespace Assets.Scripts.Gameplay
 
             if (Type == LightRayInteractorType.Emitter || (!before && HasLight))
             {
+                if (_audioSource != null)
+                {
+                    if (LightLoopSound.Clip != null)
+                    {
+                        _audioSource.clip = LightLoopSound.Clip;
+                        _audioSource.loop = true;
+                        _audioSource.Play();
+                    }
+                }
+
+                if (Type == LightRayInteractorType.Receiver && _audioSource != null && OnLight.Clip != null)
+                {
+                    _audioSource.PlayOneShot(OnLight.Clip, OnLight.VolumeModifier);
+                }
+
                 Debug.Log("Enabled light " + gameObject.name);
                 _currentColor = color;
 
@@ -157,6 +179,9 @@ namespace Assets.Scripts.Gameplay
             {
                 if (_inputs.Contains(interactor))
                     _inputs.Remove(interactor);
+
+                // Hack?
+                _inputs.Clear();
             }
 
             if (Type == LightRayInteractorType.Emitter || (before && !HasLight))
@@ -175,6 +200,15 @@ namespace Assets.Scripts.Gameplay
                     ConnectedWith.DisableLight(this);
 
                 HideSparks();
+
+                if (_audioSource != null)
+                {
+                    if (LightLoopSound.Clip != null)
+                    {
+                        _audioSource.clip = null;
+                        _audioSource.loop = false;
+                    }
+                }
             }
         }
 

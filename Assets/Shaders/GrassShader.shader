@@ -12,13 +12,13 @@ Shader "Custom/GrassShader" {
 	}
 
 		SubShader{
-		Tags{ "Queue" = "AlphaTest" "IgnoreProjector" = "True" "RenderType" = "TransparentCutout" }
+		Tags{ "Queue" = "AlphaTest" "IgnoreProjector" = "True" "RenderType" = "Transparent" }
 		Cull Off
 		LOD 200
 
 		CGPROGRAM
 #pragma target 3.0
-#pragma surface surf Lambert alphatest:_Cutoff vertex:vert addshadow
+#pragma surface surf Lambert alpha:blend vertex:vert addshadow
 
 
 		sampler2D _MainTex;
@@ -91,7 +91,7 @@ Shader "Custom/GrassShader" {
 		fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * _Color;
 		o.Albedo = c.rgb;
 		o.Alpha = c.a;
-		o.Emission = o.Albedo * 0.5;
+		o.Emission = o.Albedo * 0.2;
 	}
 	ENDCG
 	}

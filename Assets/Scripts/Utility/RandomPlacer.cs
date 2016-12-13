@@ -3,9 +3,10 @@ using System.Collections;
 
 public class RandomPlacer : MonoBehaviour
 {
-    public Vector3 Size;
+    public Vector3 Size = new Vector3(10, 10, 0);
     public GameObject ObjectToPlace;
     public bool AsChilds;
+    public bool UseRaycast;
 
     public int Count = 10;
 
@@ -14,6 +15,9 @@ public class RandomPlacer : MonoBehaviour
 
     public Vector3 RotationFrom = new Vector3(0, 0, 0);
     public Vector3 RotationTo = new Vector3(0, 180, 0);
+
+    public Vector3 RaycastDirection = Vector3.down;
+    public float RaycastRange = 1f;
 
     [ContextMenu("Place object")]
     void Place()
@@ -30,8 +34,25 @@ public class RandomPlacer : MonoBehaviour
         for (var i = 0; i < Count; i++)
         {
             var pos = RandomComponentVectorInRange(a, b);
+
+            if (UseRaycast)
+            {
+                RaycastHit hit;
+                if (Physics.Raycast(pos, transform.TransformDirection(RaycastDirection), out hit, RaycastRange))
+                {
+                    pos = hit.point;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+
             var scale = RandomComponentVectorInRange(SizeFrom, SizeTo);
             var rot = RandomComponentVectorInRange(RotationFrom, RotationTo);
+            pos += new Vector3(0, scale.y * 0.5f, 0);
+
 
             var go = (GameObject)Instantiate(ObjectToPlace, pos, Quaternion.Euler(rot));
             go.transform.localScale = scale;

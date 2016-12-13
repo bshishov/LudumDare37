@@ -27,12 +27,18 @@ namespace Assets.Scripts
         void Start ()
         {
             _cameraTransform = transform.GetChild(0).transform;
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = true;
+            LockMouse();
         }
         
         void Update ()
         {
+            if (Input.GetMouseButtonDown(0))
+                LockMouse();
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+                UnlockMouse();
+            
+
             var alignment = GetGravityAlignment();
 
             var horizontalRotation = CrossPlatformInputManager.GetAxis("Mouse X") * XSensitivity;
@@ -94,6 +100,18 @@ namespace Assets.Scripts
             }
 
             return dir;
+        }
+
+        private void LockMouse()
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
+        private void UnlockMouse()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
        
     }

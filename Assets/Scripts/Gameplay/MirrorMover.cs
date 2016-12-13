@@ -4,18 +4,21 @@ using UnityStandardAssets.CrossPlatformInput;
 
 namespace Assets.Scripts.Gameplay
 {
+    [RequireComponent(typeof(AudioSource))]
     public class MirrorMover : MonoBehaviour
     {
         public float XSensitivity = 2f;
         public float YSensitivity = 2f;
         public float MinimumVerticalAngle = -90F;
         public float MaximumVerticalAngle = 90F;
+        public AudioClipWithVolume OnInteractSound;
 
         private bool _active;
         private Camera _camera;
         private Camera _playerCamera;
         private Transform _innerWheel;
         private GameObject _player;
+        private AudioSource _audioSource;
         
         void Start ()
         {
@@ -26,6 +29,8 @@ namespace Assets.Scripts.Gameplay
             _camera.gameObject.SetActive(false);
             _innerWheel = transform.GetChild(0);
             _active = false;
+
+            _audioSource = GetComponent<AudioSource>();
         }
         
         void Update ()
@@ -57,6 +62,9 @@ namespace Assets.Scripts.Gameplay
             _active = true;
             _camera.gameObject.SetActive(true);
             _player.SetActive(false);
+
+            if (OnInteractSound.Clip != null)
+                _audioSource.PlayOneShot(OnInteractSound.Clip, OnInteractSound.VolumeModifier);
         }
 
         void Release()
