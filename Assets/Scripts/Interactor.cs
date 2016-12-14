@@ -1,4 +1,5 @@
-﻿using Assets.Scripts.Gameplay;
+﻿using System.Collections;
+using Assets.Scripts.Gameplay;
 using Assets.Scripts.UI;
 using Assets.Scripts.Utility;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace Assets.Scripts
         private GameObject _objectToInteract;
         private GameObject _grabbedObject;
         private Helper _helper;
+        private float _initialDraggedObjectMass;
 
         void Start ()
         {
@@ -92,10 +94,11 @@ namespace Assets.Scripts
         public void TakeObject(GameObject obj)
         {
             Utilities.DisableRigidBody(obj);
-
+            
             obj.transform.SetParent(_grabbingTransform, true);
             obj.transform.localPosition = Vector3.zero;
             obj.transform.localRotation = Quaternion.identity;
+
             _grabbedObject = obj;
             obj.SendMessage("OnPickedUp", this, SendMessageOptions.DontRequireReceiver);
         }
@@ -108,9 +111,11 @@ namespace Assets.Scripts
                 return;
             }
 
+            
             Utilities.EnableRigidBody(_grabbedObject);
-
             _grabbedObject.transform.SetParent(null, true);
+            _grabbedObject.GetComponent<Rigidbody>().velocity = GetComponent<Rigidbody>().velocity;
+
             _grabbedObject.SendMessage("OnDropped", this, SendMessageOptions.DontRequireReceiver);
             _grabbedObject = null;
         }

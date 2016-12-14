@@ -1,4 +1,6 @@
-﻿// Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+// Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
 
 Shader "Custom/GrassShader" {
 	Properties{
@@ -12,16 +14,16 @@ Shader "Custom/GrassShader" {
 	}
 
 		SubShader{
-		Tags{ "Queue" = "AlphaTest" "IgnoreProjector" = "True" "RenderType" = "Transparent" }
+		Tags{ "Queue" = "Transparent" "IgnoreProjector" = "True" "RenderType" = "TransparentCutout" }
 		Cull Off
 		LOD 200
 
 		CGPROGRAM
 #pragma target 3.0
-#pragma surface surf Lambert alpha:blend vertex:vert addshadow
+#pragma surface surf Lambert alpha:fade vertex:vert nolightmap nodynlightmap nodirlightmap addshadow 
 
 
-		sampler2D _MainTex;
+	sampler2D _MainTex;
 	fixed4 _Color;
 	float _ShakeDisplacement;
 	float _ShakeTime;
@@ -31,6 +33,19 @@ Shader "Custom/GrassShader" {
 	struct Input {
 		float2 uv_MainTex;
 	};
+
+	
+	fixed4 LightingCustom(SurfaceOutput s, fixed3 lightDir, fixed atten)
+	{				
+		half NdotL = dot(s.Normal, lightDir);		
+		half4 c;
+		c.rgb = s.Albedo * _LightColor0.rgb * NdotL * atten;
+		//c.rgb = s.Albedo * _LightColor0.rgb * (NdotL);
+		c.a = s.Alpha;
+		//c.rgb = s.Normal.xyz;
+		//c.a = NdotL;
+		return c;		
+	}
 
 	void FastSinCos(float4 val, out float4 s, out float4 c) {
 		val = val * 6.408849 - 3.1415927;
@@ -85,13 +100,16 @@ Shader "Custom/GrassShader" {
 		waveMove.z = dot(s, _waveZmove);
 		v.vertex.xz -= mul((float3x3)unity_WorldToObject, waveMove).xz;
 
+		// set normal to local UP
+		// mul((float3x3)unity_ObjectToWorld, float3(0, 1, 0));
+		v.normal = float3(0, 1, 0);
 	}
 
 	void surf(Input IN, inout SurfaceOutput o) {
 		fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * _Color;
 		o.Albedo = c.rgb;
 		o.Alpha = c.a;
-		o.Emission = o.Albedo * 0.2;
+		//o.Emission = o.Albedo *0.2;
 	}
 	ENDCG
 	}

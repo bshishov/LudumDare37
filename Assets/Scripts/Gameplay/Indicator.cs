@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using Assets.Scripts.Data;
 using Assets.Scripts.Utility;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,57 +10,26 @@ namespace Assets.Scripts.Gameplay
     [RequireComponent(typeof(AudioSource))]
     public class Indicator : MonoBehaviour
     {
-        public const string PLayerPositionXPrefsKey = "RelativeToRoomPositionX";
-        public const string PLayerPositionYPrefsKey = "RelativeToRoomPositionY";
-        public const string PLayerPositionZPrefsKey = "RelativeToRoomPositionZ";
-
-        [Serializable]
-        public struct LevelColor
-        {
-            public string Level;
-            public Color ColorRequired;
-        }
+        public const string PlayerSavePosKey = "PlayerPosInRoom";
+        public const string PlayerSaveRotKey = "PlayerRotInRoom";
 
         public Vector3 PlayerRelPos
         {
-            get
-            {
-                return new Vector3(PlayerPrefs.GetFloat(PLayerPositionXPrefsKey), 
-                    PlayerPrefs.GetFloat(PLayerPositionYPrefsKey), 
-                    PlayerPrefs.GetFloat(PLayerPositionZPrefsKey));
-            }
-            set
-            {
-                PlayerPrefs.SetFloat(PLayerPositionXPrefsKey, value.x);
-                PlayerPrefs.SetFloat(PLayerPositionYPrefsKey, value.y);
-                PlayerPrefs.SetFloat(PLayerPositionZPrefsKey, value.z);
-            }
+            get { return Utilities.GetPlayerPrefsVector(PlayerSavePosKey); }
+            set { Utilities.SetPlayerPrefsVector(PlayerSavePosKey, value); }
         }
 
         public Quaternion PlayerRelRot
         {
-            get
-            {
-                return new Quaternion(
-                    PlayerPrefs.GetFloat("RelRotX"),
-                    PlayerPrefs.GetFloat("RelRotY"),
-                    PlayerPrefs.GetFloat("RelRotZ"),
-                    PlayerPrefs.GetFloat("RelRotW"));
-            }
-            set
-            {
-                PlayerPrefs.SetFloat("RelRotX", value.x);
-                PlayerPrefs.SetFloat("RelRotY", value.y);
-                PlayerPrefs.SetFloat("RelRotZ", value.z);
-                PlayerPrefs.SetFloat("RelRotW", value.w);
-            }
+            get { return Utilities.GetPlayerPrefsQuaternion(PlayerSaveRotKey); }
+            set { Utilities.SetPlayerPrefsQuaternion(PlayerSaveRotKey, value); }
         }
 
         public Socket SourceSocket;
         public Door Door;
         public float RotationSpeed = 1000f;
         public float TestTime = 2f;
-        public LevelColor[] LevelColors;
+        public Levels Levels;
         public AudioClipWithVolume ActivateSound;
 
         private Rotator _rotator;
@@ -108,12 +78,12 @@ namespace Assets.Scripts.Gameplay
             _rotator.RotationSpeed = RotationSpeed;
             yield return new WaitForSeconds(TestTime);
 
-            if (SourceSocket.Slot.ArtifactInSlot != null)
+            if (SourceSocket.Slot.ArtifactInSlot != null && Levels != null)
             {
-                foreach (var levelColor in LevelColors)
+                foreach (var levelColor in Levels.LevelColors)
                 {
                     Debug.Log("Testing colors: " + SourceSocket.ConsumedColor + " vs " + levelColor.ColorRequired);
-                    if (IdenticalColor(SourceSocket.ConsumedColor, levelColor.ColorRequired))
+                    if (Utilities.IsIdenticalColor(SourceSocket.ConsumedColor, levelColor.ColorRequired, 0.2f))
                     {
                         PlayerRelPos = _playerTransform.position - _roomTransform.position;
                         PlayerRelRot = _playerTransform.localRotation;
@@ -128,21 +98,6 @@ namespace Assets.Scripts.Gameplay
             SourceSocket.UnLockSlot();
             _loadStarted = false;
             Door.Locked = false;
-        }
-
-        private bool IdenticalColor(Color a, Color b)
-        {
-            const float Threshold = 0.3f;
-            if (Mathf.Abs(a.r - b.r) > Threshold)
-                return false;
-
-            if (Mathf.Abs(a.g - b.g) > Threshold)
-                return false;
-
-            if (Mathf.Abs(a.b - b.b) > Threshold)
-                return false;
-
-            return true;
         }
     }
 }

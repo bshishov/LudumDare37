@@ -10,7 +10,8 @@ namespace Assets.Scripts.Gameplay
     public class LightRayInteractor : MonoBehaviour
     {
         public const float LineWidth = 0.4f;
-        public const float MaxRayLength = 500f;
+        public const float MinRayLength = 1f;
+        public const float MaxRayLength = 200f;
 
         public bool HasLight
         {
@@ -27,6 +28,12 @@ namespace Assets.Scripts.Gameplay
              Emitter,
              Receiver,
              Director,
+        }
+
+        public bool ShouldUseRaycastTest
+        {
+            get { return Type == LightRayInteractorType.Director || 
+                    (Type == LightRayInteractorType.Emitter && ConnectedWith != null); }
         }
 
         public LightRayInteractorType Type;
@@ -70,7 +77,7 @@ namespace Assets.Scripts.Gameplay
             yield return new WaitForFixedUpdate();
             if (Type == LightRayInteractorType.Emitter && ConnectedWith != null)
             {
-                EnableLight(null, EmitterColor);
+                OnLightEnabled(EmitterColor);
             }
         }
 	
@@ -78,42 +85,49 @@ namespace Assets.Scripts.Gameplay
         {
             if (HasLight)
             {
+                // In case interactor is moving
                 _line.SetPosition(0, transform.position);
-                if (Type == LightRayInteractorType.Director)
+
+                if (ShouldUseRaycastTest)
                 {
-                    _line.enabled = true;
+                    var direction = transform.TransformDirection(Vector3.up);
+                    if (Type == LightRayInteractorType.Emitter)
+                        direction = (ConnectedWith.transform.position - transform.position).normalized;
+
                     RaycastHit hit;
-                    if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.up), out hit, MaxRayLength, Tags.LayerMask.Default))
+                    if (Physics.Raycast(transform.position, direction, out hit, MaxRayLength, Tags.LayerMask.Default))
                     {
                         var lightinteractor = hit.collider.GetComponent<LightRayInteractor>();
-                        if (hit.distance > 2f &&  lightinteractor != null && lightinteractor.Type == LightRayInteractorType.Receiver)
+                        if (hit.distance > MinRayLength &&  lightinteractor != null && lightinteractor.Type == LightRayInteractorType.Receiver)
                         {
-                            HideSparks();
-                            ConnectedWith = lightinteractor;
-                            ConnectedWith.EnableLight(this, _currentColor);
-                            _line.SetPosition(1, ConnectedWith.transform.position);
+                            if (lightinteractor.OnLigtRayIn(this, _currentColor))
+                            {
+                                HideSparks();
+                                ConnectedWith = lightinteractor;
+                                _line.SetPosition(1, ConnectedWith.transform.position);
+                            }
+                            else
+                            {
+                                // Wrong color
+                                OnRayCastFailed(hit);
+                            }
                         }
                         else
                         {
-                            ShowSparksAt(hit.point);
-                            if (ConnectedWith != null)
-                                ConnectedWith.DisableLight(this);
-
-                            _line.SetPosition(1, hit.point);
+                            // Not a receiver
+                            OnRayCastFailed(hit);
                         }
                     }
                     else
                     {
-                        if (ConnectedWith != null)
-                            ConnectedWith.DisableLight(this);
-
-                        var pos = transform.position + transform.TransformDirection(Vector3.up)*MaxRayLength;
-                        _line.SetPosition(1, pos);
-                        ShowSparksAt(pos);
+                        // Not hit
+                        hit.point = transform.position + transform.TransformDirection(Vector3.up)*MaxRayLength;
+                        OnRayCastFailed(hit);
                     }
                 }
                 else
                 {
+                    // Without raycast (direct connect)
                     if (ConnectedWith != null)
                     {
                         _line.enabled = true;
@@ -123,91 +137,105 @@ namespace Assets.Scripts.Gameplay
             }
         }
 
-        public void EnableLight(LightRayInteractor interactor, Color color)
+        public bool OnLigtRayIn(LightRayInteractor interactor, Color color)
         {
+            // If current color is already set (lightning is on)
+            if (HasLight && !Utilities.IsIdenticalColor(color, _currentColor))
+                return false;
+
             var before = HasLight;
             if (interactor != null)
             {
+                // return true beacuse ligth input succeeded
                 if (_inputs.Contains(interactor))
-                    return;
+                    return true;
 
                 _inputs.Add(interactor);
             }
 
-            if (Type == LightRayInteractorType.Emitter || (!before && HasLight))
-            {
-                if (_audioSource != null)
-                {
-                    if (LightLoopSound.Clip != null)
-                    {
-                        _audioSource.clip = LightLoopSound.Clip;
-                        _audioSource.loop = true;
-                        _audioSource.Play();
-                    }
-                }
-
-                if (Type == LightRayInteractorType.Receiver && _audioSource != null && OnLight.Clip != null)
-                {
-                    _audioSource.PlayOneShot(OnLight.Clip, OnLight.VolumeModifier);
-                }
-
-                Debug.Log("Enabled light " + gameObject.name);
-                _currentColor = color;
-
-                if (_line != null)
-                {
-                    _line.enabled = true;
-                    _line.SetColors(_currentColor, _currentColor);
-                }
-
-                if (_particleSystem != null && _particleSystem.isStopped)
-                    _particleSystem.Play();
-                
-                if (_particleSystem != null)
-                    _particleSystem.startColor = _currentColor;
-
-                if (ConnectedWith != null)
-                    ConnectedWith.EnableLight(this, _currentColor);
-            }
+            // if HasLight changed then call OnLightEnabled
+            if (!before && HasLight)
+                OnLightEnabled(color);
+            return true;
         }
 
-        public void DisableLight(LightRayInteractor interactor)
+        public void OnLightRayOut(LightRayInteractor interactor)
         {
             var before = HasLight;
 
+            
             if (interactor != null)
             {
                 if (_inputs.Contains(interactor))
                     _inputs.Remove(interactor);
-
-                // Hack?
-                _inputs.Clear();
             }
 
-            if (Type == LightRayInteractorType.Emitter || (before && !HasLight))
-            {
-                Debug.Log("Disabled light " + gameObject.name);
+            // if HasLight changed then call OnLightDisabled
+            if (before && !HasLight)
+                OnLightDisabled();
+        }
 
-                if (_line != null)
+        public void OnLightEnabled(Color color)
+        {
+            Debug.LogFormat("Light enabled [{0}] {1}", gameObject.name, color);
+            _currentColor = color;
+
+            if (_audioSource != null)
+            {
+                if (LightLoopSound.Clip != null)
                 {
-                    _line.enabled = false;
+                    _audioSource.clip = LightLoopSound.Clip;
+                    _audioSource.loop = true;
+                    _audioSource.Play();
                 }
 
-                if (_particleSystem != null && _particleSystem.isPlaying)
-                    _particleSystem.Stop();
-
-                if (ConnectedWith != null)
-                    ConnectedWith.DisableLight(this);
-
-                HideSparks();
-
-                if (_audioSource != null)
+                if (Type == LightRayInteractorType.Receiver && OnLight.Clip != null)
                 {
-                    if (LightLoopSound.Clip != null)
-                    {
-                        _audioSource.clip = null;
-                        _audioSource.loop = false;
-                    }
+                    _audioSource.PlayOneShot(OnLight.Clip, OnLight.VolumeModifier);
+                }
+            }
+
+            if (_line != null)
+            {
+                _line.enabled = true;
+                _line.SetColors(_currentColor, _currentColor);
+            }
+
+            if (_particleSystem != null)
+            {
+                _particleSystem.startColor = _currentColor;
+
+                //if(_particleSystem.isStopped)
+                _particleSystem.Play();
+            }
+
+            if (!ShouldUseRaycastTest && ConnectedWith != null)
+                ConnectedWith.OnLigtRayIn(this, _currentColor);
+        }
+
+        public void OnLightDisabled()
+        {
+            Debug.LogFormat("Light disabled [{0}]", gameObject.name);
+
+            if (ConnectedWith != null)
+                ConnectedWith.OnLightRayOut(this);
+
+            if (_line != null)
+            {
+                _line.enabled = false;
+            }
+
+            if (_particleSystem != null && _particleSystem.isPlaying)
+                _particleSystem.Stop();
+
+            HideSparks();
+
+            if (_audioSource != null)
+            {
+                if (LightLoopSound.Clip != null)
+                {
+                    _audioSource.clip = null;
+                    _audioSource.loop = false;
                 }
             }
         }
@@ -236,6 +264,20 @@ namespace Assets.Scripts.Gameplay
                 if(particles.isPlaying)
                     particles.Stop();
             }
+        }
+
+        private void OnRayCastFailed(RaycastHit hit)
+        {
+            // disconnect
+            if (ConnectedWith != null)
+                ConnectedWith.OnLightRayOut(this);
+
+            // emitter can't lose it connection, but director does
+            if (Type != LightRayInteractorType.Emitter)
+                ConnectedWith = null;
+
+            ShowSparksAt(hit.point);
+            _line.SetPosition(1, hit.point);
         }
     }
 }
