@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
+
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 public class RandomPlacer : MonoBehaviour
 {
@@ -20,6 +23,7 @@ public class RandomPlacer : MonoBehaviour
     public Vector3 RaycastDirection = Vector3.down;
     public float RaycastRange = 1f;
 
+#if UNITY_EDITOR
     [ContextMenu("Place object")]
     void Place()
     {
@@ -66,6 +70,7 @@ public class RandomPlacer : MonoBehaviour
             }
         }
     }
+#endif
 
     void OnDrawGizmos()
     {
