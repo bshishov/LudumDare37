@@ -21,7 +21,6 @@ namespace Assets.Scripts
         private GameObject _objectToInteract;
         private GameObject _grabbedObject;
         private Helper _helper;
-        private float _initialDraggedObjectMass;
 
         void Start ()
         {
@@ -59,12 +58,44 @@ namespace Assets.Scripts
                 {
                     _objectToInteract = hit.collider.gameObject;
 
-                    if(_helper != null)
-                        _helper.Show("Interact");
+                    if (_helper != null)
+                    {
+                        if (_objectToInteract.GetComponent<Artifact>() != null)
+                        {
+                            _helper.Show("Take");
+                        }
+                        else if (_objectToInteract.GetComponent<ArtifactSlot>() != null)
+                        {
+                            if(_grabbedObject != null)
+                                _helper.Show("Place");
+                            else if(_objectToInteract.GetComponent<ArtifactSlot>().HasObject)
+                                _helper.Show("Take");
+                        }
+                        else if(_objectToInteract.GetComponent<MirrorMover>() != null)
+                        {
+                            _helper.Show("Move mirror");
+                        }
+                        else if(_objectToInteract.GetComponent<Door>() != null)
+                        {
+                            var door = _objectToInteract.GetComponent<Door>();
+                            if (door.State == Door.DoorState.Closed)
+                                _helper.Show("Open");
+                            else if(door.State == Door.DoorState.Opened)
+                                _helper.Show("Close");
+                        }
+                        else
+                        {
+                            _helper.Show("Interact");
+                        }
+                    }
                 }
             }
             else
             {
+                if (_grabbedObject != null)
+                {
+                    _helper.Show("Drop");
+                }
                 _objectToInteract = null;
 
                 if(_helper != null)

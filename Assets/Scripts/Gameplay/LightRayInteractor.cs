@@ -120,8 +120,8 @@ namespace Assets.Scripts.Gameplay
                     }
                     else
                     {
-                        // Not hit
-                        hit.point = transform.position + transform.TransformDirection(Vector3.up)*MaxRayLength;
+                        // Not hit. 5x multiplied for infinite rays
+                        hit.point = transform.position + transform.TransformDirection(Vector3.up) * MaxRayLength * 5f; 
                         OnRayCastFailed(hit);
                     }
                 }

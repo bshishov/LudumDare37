@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEditor;
 
 public class RandomPlacer : MonoBehaviour
 {
@@ -53,8 +54,10 @@ public class RandomPlacer : MonoBehaviour
             var rot = RandomComponentVectorInRange(RotationFrom, RotationTo);
             pos += new Vector3(0, scale.y * 0.5f, 0);
 
-
-            var go = (GameObject)Instantiate(ObjectToPlace, pos, Quaternion.Euler(rot));
+            
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(ObjectToPlace);
+            go.transform.position = pos;
+            go.transform.localRotation = Quaternion.Euler(rot);
             go.transform.localScale = scale;
 
             if (AsChilds)

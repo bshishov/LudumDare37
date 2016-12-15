@@ -67,11 +67,6 @@ namespace Assets.Scripts
             {
                 _jump = true;
             }
-
-            if (CrossPlatformInputManager.GetButtonDown("Fire2"))
-            {
-                GetComponent<LastStaticPositionTracker>().ResetToStaticPositionDelayed(0.5f);
-            }
         }
 
         void FixedUpdate()
