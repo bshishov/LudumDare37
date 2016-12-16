@@ -61,10 +61,10 @@
 				fixed4 col = tex2D(_MainTex, i.uv);				
 				fixed a = col.r;
 				fixed4 dist = fixed4(1,1,1,1) - col;
-				fixed l = length(dist);
+				fixed l = sqrt(length(dist));
 				col.rgb = fixed3(1, 1, 1) * (1 - l) + i.color.xyz * l;
 				//col.rgb = i.color.xyz;
-				col.a = sqrt(a);
+				col.a = a;
 
 				UNITY_APPLY_FOG(i.fogCoord, col);
 				return col;
