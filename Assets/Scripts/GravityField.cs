@@ -7,12 +7,9 @@ namespace Assets.Scripts
     {
         public const string TriggerEnterMessage = "OnGravityFieldEnter";
         public const string TriggerExitMessage = "OnGravityFieldExit";
-        public const float Gravity = 9.8f;
-
         public Vector3 LocalDirection = Vector3.down;
 
         private BoxCollider _collider;
-        
 
         void Start ()
         {
@@ -20,32 +17,12 @@ namespace Assets.Scripts
 
             if (!_collider.isTrigger)
                 Debug.LogWarning("Collider should be a trigger");
-            
-        }
-        
-        void Update ()
-        {
-	        
         }
 
         void OnTriggerEnter(Collider collider)
         {
             collider.SendMessage(TriggerEnterMessage, this, SendMessageOptions.DontRequireReceiver);
         }
-
-        void OnTriggerStay(Collider collider)
-        {
-            var body = collider.attachedRigidbody;
-            if (body != null)
-            {
-                var direction = transform.TransformDirection(LocalDirection);
-                Debug.DrawRay(body.transform.position, direction * Gravity, Color.blue);
-
-                // Negate the unity gravity and apply custom
-                body.AddForce(direction * Gravity * body.mass - Physics.gravity * body.mass);
-            }
-        }
-
 
         void OnTriggerExit(Collider collider)
         {
@@ -54,12 +31,12 @@ namespace Assets.Scripts
 
         void OnDrawGizmos()
         {
-            var collider = GetComponent<BoxCollider>();
-            if (collider != null)
+            var col = GetComponent<BoxCollider>();
+            if (col != null)
             {
                 Gizmos.color = Color.yellow;
-                Gizmos.DrawWireCube(collider.bounds.center, collider.bounds.size);
-                Gizmos.DrawRay(collider.bounds.center, transform.TransformDirection(LocalDirection));
+                Gizmos.DrawWireCube(col.bounds.center, col.bounds.size);
+                Gizmos.DrawRay(col.bounds.center, transform.TransformDirection(LocalDirection));
             }
         }
     }

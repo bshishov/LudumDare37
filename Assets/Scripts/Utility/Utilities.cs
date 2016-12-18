@@ -18,6 +18,8 @@ namespace Assets.Scripts.Utility
             var col = obj.GetComponent<Collider>();
             if (col != null && !keepCollider)
                 col.enabled = false;
+
+            obj.SendMessage("OnRigidBodyDisabled", SendMessageOptions.DontRequireReceiver);
         }
 
         public static void EnableRigidBody(GameObject obj, float fixDelay = 1f)
@@ -32,6 +34,8 @@ namespace Assets.Scripts.Utility
             var col = obj.GetComponent<Collider>();
             if (col != null)
                 col.enabled = true;
+
+            obj.SendMessage("OnRigidBodyEnabled", SendMessageOptions.DontRequireReceiver);
         }
        
         public static Quaternion ClampRotationAroundXAxis(Quaternion q, float minAngle, float maxAngle)
